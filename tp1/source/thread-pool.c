@@ -7,7 +7,7 @@
 #include <sys/prctl.h>
 
 const unsigned short FILTER_OPS_NUMBER = 4;
-
+volatile bool keep_all_workers_alive = true;
 
 /* Save image to a PNG file */
 static int
@@ -172,8 +172,8 @@ free_task(task_t* task){
 static void
 worker_sig_handler(int sig_num) {
 	if(sig_num == SIGINT){
-		printf("\n Worker(%lu) is interrupted .. exiting.", pthread_self());
-		pthread_exit(NULL);
+		printf("\n\rSIGINT received, stopping pipeline\n");
+		__atomic_store_n(&keep_all_workers_alive, false, __ATOMIC_RELAXED);
 	}
 }
 
@@ -209,7 +209,7 @@ func(const void* arg) {
 	worker_pool->num_workers_alive += 1;
 	pthread_mutex_unlock(&worker_pool->workers_count_lock);
 
-	while(worker->keepalive){
+	while(keep_all_workers_alive && worker->keepalive){
 
 		pthread_mutex_lock(&worker_pool->workers_all_idle_mutex);
 		while(worker_pool->all_workers_are_idle) {
@@ -264,9 +264,9 @@ init_worker (workers_pool_t* pool, worker_t** worker, int id, uint8_t type){
 	}
 
 	(*worker)->workers_pool = pool;
+	(*worker)->keepalive = true;
 	(*worker)->id       = id;
 	(*worker)->type 	= type;
-	(*worker)->keepalive = 1;
 
 	pthread_create(&(*worker)->pthread, NULL, (void * (*)(void *)) func, (*worker));
 	//pthread_setcancelstate((*worker)->pthread, PTHREAD_CANCEL_ENABLE);
@@ -446,6 +446,7 @@ dequeue_task(pipeline_t* pipeline, worker_t* worker) {
 
 	queue_t* queue = NULL;
 	task_t * task = NULL;
+
 	if(worker->type == IO_THREAD) {
 		/* IO Workers having odd IDs are responsible for saving files on disk */
 		if(worker->id & 1) {
