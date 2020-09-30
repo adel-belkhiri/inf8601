@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/filter.h
+image.h
+../include/image.h
+
+../include/image.h
+stdbool.h
+-
+stddef.h
+-
+
+../include/log.h
+errno.h
+-
+stdio.h
+-
+string.h
+-
+
+../include/pipeline.h
+image.h
+../include/image.h
+
+/home/adel/git/inf8601/tp1/source/pipeline-tbb.cpp
+filter.h
+/home/adel/git/inf8601/tp1/source/filter.h
+log.h
+/home/adel/git/inf8601/tp1/source/log.h
+pipeline.h
+/home/adel/git/inf8601/tp1/source/pipeline.h
+
