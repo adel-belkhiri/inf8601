@@ -18,20 +18,20 @@ function check_file() {
         return 1
     fi
 
-    #if [[ ! -f "$filename_tbb" ]]; then
-    #    echo -e "\nFile '$filename_tbb' does not exist"
-    #    return 1
-    #fi
+    if [[ ! -f "$filename_tbb" ]]; then
+        echo -e "\nFile '$filename_tbb' does not exist"
+        return 1
+    fi
 
     if ! cmp "$filename_serial" "$filename_pthread" > /dev/null; then
         echo -e "\nFiles '$filename_serial' and '$filename_pthread' don't match"
         return 1
     fi
 
-    #if ! cmp "$filename_serial" "$filename_tbb" > /dev/null; then
-    #    echo -e "\nFiles '$filename_serial' and '$filename_tbb' don't match"
-    #    return 1
-    #fi
+    if ! cmp "$filename_serial" "$filename_tbb" > /dev/null; then
+        echo -e "\nFiles '$filename_serial' and '$filename_tbb' don't match"
+        return 1
+    fi
 
     printf .
     return 0;

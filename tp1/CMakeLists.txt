@@ -6,7 +6,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(pipeline include)
 add_executable(pipeline)
-target_link_libraries(pipeline -lm -lpthread -lpng -g)
+target_link_libraries(pipeline -lm -lpthread -lpng -ltbb)
 target_sources(pipeline PUBLIC
     source/filter.c
     source/image.c

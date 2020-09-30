@@ -29,6 +29,10 @@ image.h
 ../include/image.h
 
 /home/adel/git/inf8601/tp1/source/pipeline-tbb.cpp
+tbb/parallel_for_each.h
+/home/adel/git/inf8601/tp1/source/tbb/parallel_for_each.h
+vector
+-
 filter.h
 /home/adel/git/inf8601/tp1/source/filter.h
 log.h
