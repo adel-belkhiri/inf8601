@@ -29,6 +29,11 @@ save_image_to_file(void* arg1) {
 	task->stage = DONE;
 	int ret = image_dir_save(ti->dir, ti->image);
 
+	if(ret) {
+		LOG_ERROR("Fail to save file %s\n", ti->image_name);
+		goto fail_exit;
+	}
+
 	printf(".");
 	fflush(stdout);
 	return ret;
@@ -207,11 +212,16 @@ func(const void* arg) {
 	/* Increment the number of alive workers */
 	pthread_mutex_lock(&worker_pool->workers_count_lock);
 	worker_pool->num_workers_alive += 1;
-	if(worker->type == IO_THREAD)
-		worker_pool->num_io_workers_alive += 1;
-	else
+	if(worker->type == IO_THREAD) {
+		if(worker->id & 1)
+			worker_pool->num_io_save_workers_alive += 1;
+		else
+			worker_pool->num_io_load_workers_alive += 1;
+	}
+	else {
 		if(worker->type == COMPUTE_THREAD)
 			worker_pool->num_compute_workers_alive += 1;
+	}
 	pthread_mutex_unlock(&worker_pool->workers_count_lock);
 
 	while(keep_all_workers_alive && worker->keepalive){
@@ -253,11 +263,16 @@ func(const void* arg) {
 
 	pthread_mutex_lock(&worker_pool->workers_count_lock);
 	worker_pool->num_workers_alive --;
-	if(worker->type == IO_THREAD)
-		worker_pool->num_io_workers_alive --;
-	else
+	if(worker->type == IO_THREAD) {
+		if(worker->id & 1)
+					worker_pool->num_io_save_workers_alive --;
+				else
+					worker_pool->num_io_load_workers_alive --;
+	}
+	else {
 		if(worker->type == COMPUTE_THREAD)
 			worker_pool->num_compute_workers_alive --;
+	}
 	pthread_mutex_unlock(&worker_pool->workers_count_lock);
 }
 
@@ -395,13 +410,16 @@ init_workers_pool(int io_threads_count, int compute_threads_count){
 		return NULL;
 	}
 
+	w_pool->num_io_workers = io_threads_count;
+	w_pool->num_compute_workers = compute_threads_count;
+
 	w_pool->num_workers_alive   = 0;
-	w_pool->num_io_workers_alive   = 0;
+	w_pool->num_io_load_workers_alive   = 0;
+	w_pool->num_io_save_workers_alive   = 0;
 	w_pool->num_compute_workers_alive   = 0;
 
 	w_pool->all_workers_are_idle = true;
-	w_pool->num_io_workers = io_threads_count;
-	w_pool->num_compute_workers = compute_threads_count;
+
 
 	/* Initialize the job queue */
 	if (init_pipeline(&w_pool->pipeline, 500) < 0){
@@ -472,7 +490,7 @@ dequeue_task(pipeline_t* pipeline, worker_t* worker) {
 			task = queue_pop(pipeline->io_load_q);
 			if(task == NULL) {
 				queue_push(pipeline->io_load_q, NULL);
-				if(worker->workers_pool->num_io_workers_alive == (worker->workers_pool->num_io_workers/2 + 1))
+				if(worker->workers_pool->num_io_load_workers_alive == 1)
 					queue_push(pipeline->compute_filter_q, NULL);
 				worker->keepalive = 0;
 			}

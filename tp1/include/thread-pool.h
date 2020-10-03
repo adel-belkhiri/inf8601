@@ -87,7 +87,8 @@ struct workers_pool{
 	volatile int num_compute_workers;
 	volatile int num_workers_alive;
 
-	volatile int num_io_workers_alive;
+	volatile int num_io_load_workers_alive;
+	volatile int num_io_save_workers_alive;
 	volatile int num_compute_workers_alive;
 
 	/* used for workers count etc */
