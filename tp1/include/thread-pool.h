@@ -65,10 +65,6 @@ typedef struct pipeline {
 	pthread_cond_t pipeline_idle_cond;
 	volatile bool pipeline_is_idle;
 	volatile bool pipeline_stop_when_idle;
-
-	volatile long tot_num_tasks;
-	volatile long num_processed_tasks;
-
 } pipeline_t;
 
 
@@ -77,9 +73,9 @@ typedef struct workers_pool workers_pool_t;
 /* Worker Thread */
 typedef struct worker{
 	int        id;
-	int keepalive;
 	worker_type_t type;
 	pthread_t  pthread;
+	int keepalive;
 	workers_pool_t*  workers_pool;
 } worker_t;
 
@@ -91,10 +87,14 @@ struct workers_pool{
 	volatile int num_compute_workers;
 	volatile int num_workers_alive;
 
+	volatile int num_io_workers_alive;
+	volatile int num_compute_workers_alive;
+
 	/* used for workers count etc */
 	pthread_mutex_t  workers_count_lock;
 
 	volatile bool all_workers_are_idle;
+
 	pthread_mutex_t  workers_all_idle_mutex;
 	pthread_cond_t   workers_all_idle_cond;
 

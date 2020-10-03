@@ -207,6 +207,11 @@ func(const void* arg) {
 	/* Increment the number of alive workers */
 	pthread_mutex_lock(&worker_pool->workers_count_lock);
 	worker_pool->num_workers_alive += 1;
+	if(worker->type == IO_THREAD)
+		worker_pool->num_io_workers_alive += 1;
+	else
+		if(worker->type == COMPUTE_THREAD)
+			worker_pool->num_compute_workers_alive += 1;
 	pthread_mutex_unlock(&worker_pool->workers_count_lock);
 
 	while(keep_all_workers_alive && worker->keepalive){
@@ -248,6 +253,11 @@ func(const void* arg) {
 
 	pthread_mutex_lock(&worker_pool->workers_count_lock);
 	worker_pool->num_workers_alive --;
+	if(worker->type == IO_THREAD)
+		worker_pool->num_io_workers_alive --;
+	else
+		if(worker->type == COMPUTE_THREAD)
+			worker_pool->num_compute_workers_alive --;
 	pthread_mutex_unlock(&worker_pool->workers_count_lock);
 }
 
@@ -304,8 +314,6 @@ init_pipeline(pipeline_t** pipeline, size_t size) {
 
 	pthread_mutex_init(&((*pipeline)->pipeline_idle_mutex), NULL);
 	pthread_cond_init(&((*pipeline)->pipeline_idle_cond), NULL);
-	(*pipeline)->num_processed_tasks = 0;
-	(*pipeline)->tot_num_tasks = 0;
 	(*pipeline)->pipeline_is_idle = false;
 	(*pipeline)->pipeline_stop_when_idle = false;
 
@@ -388,6 +396,9 @@ init_workers_pool(int io_threads_count, int compute_threads_count){
 	}
 
 	w_pool->num_workers_alive   = 0;
+	w_pool->num_io_workers_alive   = 0;
+	w_pool->num_compute_workers_alive   = 0;
+
 	w_pool->all_workers_are_idle = true;
 	w_pool->num_io_workers = io_threads_count;
 	w_pool->num_compute_workers = compute_threads_count;
@@ -452,6 +463,7 @@ dequeue_task(pipeline_t* pipeline, worker_t* worker) {
 		if(worker->id & 1) {
 			task = queue_pop(pipeline->io_save_q);
 			if(task == NULL) {
+				queue_push(pipeline->io_save_q, NULL);
 				worker->keepalive = 0;
 			}
 		}
@@ -460,7 +472,8 @@ dequeue_task(pipeline_t* pipeline, worker_t* worker) {
 			task = queue_pop(pipeline->io_load_q);
 			if(task == NULL) {
 				queue_push(pipeline->io_load_q, NULL);
-				queue_push(pipeline->compute_filter_q, NULL);
+				if(worker->workers_pool->num_io_workers_alive == (worker->workers_pool->num_io_workers/2 + 1))
+					queue_push(pipeline->compute_filter_q, NULL);
 				worker->keepalive = 0;
 			}
 		}
@@ -470,7 +483,8 @@ dequeue_task(pipeline_t* pipeline, worker_t* worker) {
 			task = queue_pop(pipeline->compute_filter_q);
 			if(task == NULL) {
 				queue_push(pipeline->compute_filter_q, NULL);
-				queue_push(pipeline->io_save_q, NULL);
+				if(worker->workers_pool->num_compute_workers_alive == 1)
+					queue_push(pipeline->io_save_q, NULL);
 				worker->keepalive = 0;
 			}
 	}
