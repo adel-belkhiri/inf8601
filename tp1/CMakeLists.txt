@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.13.5)
-#cmake_minimum_required(VERSION 3.10.2)
 project(tp1 LANGUAGES C CXX)
-
-set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(pipeline include)
 add_executable(pipeline)
@@ -26,7 +23,7 @@ add_custom_target(format
 
 add_custom_target(remise
     COMMAND zip --must-match -r ${CMAKE_CURRENT_BINARY_DIR}/remise.zip
-            source/*.c source/*.cpp include/*.h CMakeLists.txt data/*.sh .clang-format
+            source/*.c source/*.cpp include/*.h CMakeLists.txt data/*.sh  README.pdf
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 add_dependencies(remise pipeline)
@@ -62,3 +59,7 @@ add_custom_target(run-all
 )
 add_dependencies(run-all run-serial run-pthread run-tbb)
 
+add_custom_target(check
+    COMMAND ./data/check.sh
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
